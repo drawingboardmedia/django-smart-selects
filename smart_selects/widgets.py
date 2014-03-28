@@ -3,7 +3,6 @@ import locale
 import django
 
 from django.conf import settings
-from django.contrib.admin.templatetags.admin_static import static
 from django.core.urlresolvers import reverse
 from django.db.models import get_model
 from django.forms.widgets import Select
@@ -21,6 +20,7 @@ else:
 
 URL_PREFIX = getattr(settings, "SMART_SELECTS_URL_PREFIX", "")
 
+JQUERY_URL = getattr(settings, 'JQUERY_URL', 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js')
 
 class ChainedSelect(Select):
     def __init__(self, app_name, model_name, chain_field,
@@ -37,17 +37,21 @@ class ChainedSelect(Select):
         super(Select, self).__init__(*args, **kwargs)
 
     class Media:
-        extra = '' if settings.DEBUG else '.min'
-        js = [
-            'jquery%s.js' % extra,
-            'jquery.init.js'
-        ]
-        if USE_DJANGO_JQUERY:
-            js = [static('admin/js/%s' % url) for url in js]
-        elif JQUERY_URL:
-            js = [JQUERY_URL]
+        js = ['media/javascript/public/jquery-1.5.2.min.js']
+#         js = [JQUERY_URL] 
+     #   extra = '' if settings.DEBUG else '.min'
+    #    js = [
+    #        'jquery%s.js' % extra,
+    #        'jquery.init.js'
+    #    ]
+    #    if USE_DJANGO_JQUERY:
+     #       pass
+            #js = [static('admin/js/%s' % url) for url in js]
+     #   elif JQUERY_URL:
+      #      js = [JQUERY_URL]
 
     def render(self, name, value, attrs=None, choices=()):
+#        import pdb; pdb.set_trace()
         if len(name.split('-')) > 1:  # formset
             chain_field = '-'.join(name.split('-')[:-1] + [self.chain_field])
         else:
@@ -70,6 +74,7 @@ class ChainedSelect(Select):
             auto_choose = 'false'
         empty_label = iter(self.choices).next()[1]  # Hacky way to getting the correct empty_label from the field instead of a hardcoded '--------'
         js = """
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
         <script type="text/javascript">
         //<![CDATA[
         (function($) {
@@ -105,13 +110,30 @@ class ChainedSelect(Select):
                         options = '<option value="">%(empty_label)s<'+'/option>';
                         $("#%(id)s").html(options);
                         $('#%(id)s option:first').attr('selected', 'selected');
-                        $("#%(id)s").trigger('change');
+                        $("#%(id)s").trigger('change');                                                
                         return;
                     }
                     $.getJSON("%(url)s/"+val+"/", function(j){
+                        if (j.out == '')
+                        // convert select field into textfield if no state is assigned for selected country
+                        // User can fill Custom value into state field
+                        {
+                            $("#%(id)s").replaceWith('<input id="%(id)s" type="text" name="%(name)s" value="" />');
+                            document.getElementById("%(id)s").value = %(id)s_value;
+                            $('label[for="%(id)s"]').html(j.political_divisions);
+                            %(id)s_value = '' 
+                        } 
+                        else {
+                        var select_state = document.createElement("select");
+                        select_state = $(select_state).attr('id', '%(id)s');
+                        select_state = $(select_state).attr('name', '%(name)s');
+                        $('input#%(id)s').replaceWith(select_state);
+                        $('#%(id)s').empty();
+                        $('label[for="%(id)s"]').html(j.political_divisions);
+                        %(id)s_value = '' 
                         var options = '<option value="">%(empty_label)s<'+'/option>';
-                        for (var i = 0; i < j.length; i++) {
-                            options += '<option value="' + j[i].value + '">' + j[i].display + '<'+'/option>';
+                        for (var i = 0; i < j.out.length; i++) {
+                            options += '<option value="' + j.out[i].display + '">' + j.out[i].display + '<'+'/option>';
                         }
                         var width = $("#%(id)s").outerWidth();
                         $("#%(id)s").html(options);
@@ -122,10 +144,12 @@ class ChainedSelect(Select):
                         if(init_value){
                             $('#%(id)s option[value="'+ init_value +'"]').attr('selected', 'selected');
                         }
-                        if(auto_choose && j.length == 1){
-                            $('#%(id)s option[value="'+ j[0].value +'"]').attr('selected', 'selected');
+                        if(auto_choose && j.out.length == 1){
+                            $('#%(id)s option[value="'+ j.out[0].value +'"]').attr('selected', 'selected');
                         }
+                        
                         $("#%(id)s").trigger('change');
+                        }
                     })
                 }
 
@@ -157,39 +181,42 @@ class ChainedSelect(Select):
         js = js % {"chainfield": chain_field,
                    "url": url,
                    "id": attrs['id'],
+                   "name": name	,
                    'value': value,
                    'auto_choose': auto_choose,
                    'empty_label': empty_label}
         final_choices = []
-
         if value:
-            item = self.queryset.filter(pk=value)[0]
             try:
-                pk = getattr(item, self.model_field + "_id")
-                filter = {self.model_field: pk}
-            except AttributeError:
-                try:  # maybe m2m?
-                    pks = getattr(item, self.model_field).all().values_list('pk', flat=True)
-                    filter = {self.model_field + "__in": pks}
+                item = self.queryset.get(pk=value)        #  change 
+                try:
+                    pk = getattr(item, self.model_field + "_id")
+                    filter = {self.model_field: pk}
                 except AttributeError:
-                    try:  # maybe a set?
-                        pks = getattr(item, self.model_field + "_set").all().values_list('pk', flat=True)
+                    try:  # maybe m2m?
+                        pks = getattr(item, self.model_field).all().values_list('pk', flat=True)
                         filter = {self.model_field + "__in": pks}
-                    except:  # give up
-                        filter = {}
-            filtered = list(get_model(self.app_name, self.model_name).objects.filter(**filter).distinct())
-            filtered.sort(cmp=locale.strcoll, key=lambda x: unicode_sorter(unicode(x)))
-            for choice in filtered:
-                final_choices.append((choice.pk, unicode(choice)))
-        if len(final_choices) > 1:
-            final_choices = [("", (empty_label))] + final_choices
-        if self.show_all:
-            final_choices.append(("", (empty_label)))
-            self.choices = list(self.choices)
-            self.choices.sort(cmp=locale.strcoll, key=lambda x: unicode_sorter(x[1]))
-            for ch in self.choices:
-                if not ch in final_choices:
-                    final_choices.append(ch)
+                    except AttributeError:
+                        try:  # maybe a set?
+                            pks = getattr(item, self.model_field + "_set").all().values_list('pk', flat=True)
+                            filter = {self.model_field + "__in": pks}
+                        except:  # give up
+                            filter = {}
+                filtered = list(get_model(self.app_name, self.model_name).objects.filter(**filter).distinct())
+                filtered.sort(cmp=locale.strcoll, key=lambda x: unicode_sorter(unicode(x)))
+                for choice in filtered:
+                    final_choices.append((choice.pk, unicode(choice)))
+            except:
+                final_choices = [(value, value)] # changes
+            if len(final_choices) > 1:
+                final_choices = [("", (empty_label))] + final_choices
+            if self.show_all:
+                final_choices.append(("", (empty_label)))
+                self.choices = list(self.choices)
+                self.choices.sort(cmp=locale.strcoll, key=lambda x: unicode_sorter(x[1]))
+                for ch in self.choices:
+                    if not ch in final_choices:
+                        final_choices.append(ch)
         self.choices = ()
         final_attrs = self.build_attrs(attrs, name=name)
         if 'class' in final_attrs:

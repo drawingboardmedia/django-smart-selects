@@ -23,6 +23,14 @@ class ChainedModelChoiceField(ModelChoiceField):
         else:
             super(ChainedModelChoiceField, self).__init__(initial=initial, *args, **defaults)
 
+    def clean(self, value):
+         from django.forms import ValidationError          
+         if not value:
+             raise ValidationError('This Field is required.')
+         if len(value) > 255:
+             raise ValidationError('Invalid Data.')
+         return value
+ 
     def _get_choices(self):
         self.widget.queryset = self.queryset
         choices = super(ChainedModelChoiceField, self)._get_choices()

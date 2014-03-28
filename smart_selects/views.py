@@ -9,6 +9,10 @@ from smart_selects.utils import unicode_sorter
 
 def filterchain(request, app, model, field, value, manager=None):
     model_class = get_model(app, model)
+    try:
+        political_divisions = model_class.country.field.related.parent_model.objects.get(id=value).political_divisions
+    except:
+        political_divisions = "State"
     if value == '0':
         keywords = {str("%s__isnull" % field): True}
     else:
@@ -19,9 +23,10 @@ def filterchain(request, app, model, field, value, manager=None):
         queryset = model_class._default_manager
     results = list(queryset.filter(**keywords))
     results.sort(cmp=locale.strcoll, key=lambda x: unicode_sorter(unicode(x)))
-    result = []
+    result = {'out': [],}    
     for item in results:
-        result.append({'value': item.pk, 'display': unicode(item)})
+        result['out'].append({'value': item.pk, 'display': unicode(item)})
+    result['political_divisions'] = political_divisions 
     json = simplejson.dumps(result)
     return HttpResponse(json, mimetype='application/json')
 
