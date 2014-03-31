@@ -11,16 +11,9 @@ from django.utils.safestring import mark_safe
 from smart_selects.utils import unicode_sorter
 
 
-if django.VERSION >= (1, 2, 0) and getattr(settings,
-                                           'USE_DJANGO_JQUERY', True):
-    USE_DJANGO_JQUERY = True
-else:
-    USE_DJANGO_JQUERY = False
-    JQUERY_URL = getattr(settings, 'JQUERY_URL', 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js')
+JQUERY_URL = getattr(settings, 'JQUERY_URL', 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js')
 
 URL_PREFIX = getattr(settings, "SMART_SELECTS_URL_PREFIX", "")
-
-JQUERY_URL = getattr(settings, 'JQUERY_URL', 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js')
 
 class ChainedSelect(Select):
     def __init__(self, app_name, model_name, chain_field,
@@ -36,22 +29,10 @@ class ChainedSelect(Select):
         self.view_name = view_name
         super(Select, self).__init__(*args, **kwargs)
 
-    class Media:
-        js = ['media/javascript/public/jquery-1.5.2.min.js']
-#         js = [JQUERY_URL] 
-     #   extra = '' if settings.DEBUG else '.min'
-    #    js = [
-    #        'jquery%s.js' % extra,
-    #        'jquery.init.js'
-    #    ]
-    #    if USE_DJANGO_JQUERY:
-     #       pass
-            #js = [static('admin/js/%s' % url) for url in js]
-     #   elif JQUERY_URL:
-      #      js = [JQUERY_URL]
+#    class Media:
+#        js = [JQUERY_URL,]
 
     def render(self, name, value, attrs=None, choices=()):
-#        import pdb; pdb.set_trace()
         if len(name.split('-')) > 1:  # formset
             chain_field = '-'.join(name.split('-')[:-1] + [self.chain_field])
         else:
@@ -74,7 +55,7 @@ class ChainedSelect(Select):
             auto_choose = 'false'
         empty_label = iter(self.choices).next()[1]  # Hacky way to getting the correct empty_label from the field instead of a hardcoded '--------'
         js = """
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
         <script type="text/javascript">
         //<![CDATA[
         (function($) {
