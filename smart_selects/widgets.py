@@ -55,9 +55,19 @@ class ChainedSelect(Select):
             auto_choose = 'false'
         empty_label = iter(self.choices).next()[1]  # Hacky way to getting the correct empty_label from the field instead of a hardcoded '--------'
         js = """
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+        <script type="text/javascript" src="/site_media/media/javascript/public/jquery-1.5.2.min.js"></script>
         <script type="text/javascript">
         //<![CDATA[
+ function change_state() {
+
+            // change billing state when there is any change with delivery state  
+            $("#id_state").bind('input propertychange keyup change', function () {
+                if ($('#ckb-billStatus').is(':checked')) {
+                    $("#id_billing_state").val($("#id_state").val());
+                }
+            });
+        }
+        change_state();
         (function($) {
             function fireEvent(element,event){
                 if (document.createEventObject){
@@ -94,6 +104,7 @@ class ChainedSelect(Select):
                         $("#%(id)s").trigger('change');                                                
                         return;
                     }
+                    $.ajaxSetup({async:false});
                     $.getJSON("%(url)s/"+val+"/", function(j){
                         if (j.out == '')
                         // convert select field into textfield if no state is assigned for selected country
@@ -105,6 +116,7 @@ class ChainedSelect(Select):
                             %(id)s_value = '' 
                         } 
                         else {
+                 
                         var select_state = document.createElement("select");
                         select_state = $(select_state).attr('id', '%(id)s');
                         select_state = $(select_state).attr('name', '%(name)s');
@@ -130,6 +142,7 @@ class ChainedSelect(Select):
                         }
                         
                         $("#%(id)s").trigger('change');
+                 
                         }
                     })
                 }
