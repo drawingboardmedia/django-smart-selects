@@ -58,16 +58,6 @@ class ChainedSelect(Select):
         <script type="text/javascript" src="/site_media/media/javascript/public/jquery-1.5.2.min.js"></script>
         <script type="text/javascript">
         //<![CDATA[
- function change_state() {
-
-            // change billing state when there is any change with delivery state  
-            $("#id_state").bind('input propertychange keyup change', function () {
-                if ($('#ckb-billStatus').is(':checked')) {
-                    $("#id_billing_state").val($("#id_state").val());
-                }
-            });
-        }
-        change_state();
         (function($) {
             function fireEvent(element,event){
                 if (document.createEventObject){
@@ -113,7 +103,7 @@ class ChainedSelect(Select):
                             $("#%(id)s").replaceWith('<input id="%(id)s" type="text" name="%(name)s" value="" />');
                             document.getElementById("%(id)s").value = %(id)s_value;
                             $('label[for="%(id)s"]').html(j.political_divisions);
-                            %(id)s_value = '' 
+                            %(id)s_value = '';
                         } 
                         else {
                  
@@ -123,7 +113,7 @@ class ChainedSelect(Select):
                         $('input#%(id)s').replaceWith(select_state);
                         $('#%(id)s').empty();
                         $('label[for="%(id)s"]').html(j.political_divisions);
-                        %(id)s_value = '' 
+                        %(id)s_value = ''; 
                         var options = '<option value="">%(empty_label)s<'+'/option>';
                         for (var i = 0; i < j.out.length; i++) {
                             options += '<option value="' + j.out[i].display + '">' + j.out[i].display + '<'+'/option>';
