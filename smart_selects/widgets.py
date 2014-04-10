@@ -109,11 +109,15 @@ class ChainedSelect(Select):
                         $('input#%(id)s').replaceWith(select_state);
                         $('#%(id)s').empty();
                         $('label[for="%(id)s"]').html(j.political_divisions);
-                        selected_state_value = '';
                         var options = '<option value="">%(empty_label)s<'+'/option>';
                         for (var i = 0; i < j.out.length; i++) {
                             options += '<option value="' + j.out[i].display + '">' + j.out[i].display + '<'+'/option>';
+                            if (j.out[i] == selected_state_value) {
+                                options[i].selected = true;
+                            }
+
                         }
+                        selected_state_value = '';
                         var width = $("#%(id)s").outerWidth();
                         $("#%(id)s").html(options);
                         if (navigator.appVersion.indexOf("MSIE") != -1)
