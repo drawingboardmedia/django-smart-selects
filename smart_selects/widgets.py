@@ -29,9 +29,6 @@ class ChainedSelect(Select):
         self.view_name = view_name
         super(Select, self).__init__(*args, **kwargs)
 
-#    class Media:
-#        js = [JQUERY_URL,]
-
     def render(self, name, value, attrs=None, choices=()):
         if len(name.split('-')) > 1:  # formset
             chain_field = '-'.join(name.split('-')[:-1] + [self.chain_field])
@@ -101,19 +98,18 @@ class ChainedSelect(Select):
                         // User can fill Custom value into state field
                         {
                             $("#%(id)s").replaceWith('<input id="%(id)s" type="text" name="%(name)s" value="" />');
-                            document.getElementById("%(id)s").value = %(id)s_value;
+                            document.getElementById("%(id)s").value = selected_state_value;
                             $('label[for="%(id)s"]').html(j.political_divisions);
-                            %(id)s_value = '';
+                            selected_state_value = '';
                         } 
                         else {
-                 
                         var select_state = document.createElement("select");
                         select_state = $(select_state).attr('id', '%(id)s');
                         select_state = $(select_state).attr('name', '%(name)s');
                         $('input#%(id)s').replaceWith(select_state);
                         $('#%(id)s').empty();
                         $('label[for="%(id)s"]').html(j.political_divisions);
-                        %(id)s_value = ''; 
+                        selected_state_value = '';
                         var options = '<option value="">%(empty_label)s<'+'/option>';
                         for (var i = 0; i < j.out.length; i++) {
                             options += '<option value="' + j.out[i].display + '">' + j.out[i].display + '<'+'/option>';
@@ -128,6 +124,7 @@ class ChainedSelect(Select):
                             $('#%(id)s option[value="'+ init_value +'"]').attr('selected', 'selected');
                         }
                         if(auto_choose && j.out.length == 1){
+                            alert('ssss');
                             $('#%(id)s option[value="'+ j.out[0].value +'"]').attr('selected', 'selected');
                         }
                         
@@ -136,12 +133,11 @@ class ChainedSelect(Select):
                         }
                     })
                 }
-
+                var selected_state_value = '%(value)s';
                 if(!$("#id_%(chainfield)s").hasClass("chained")){
                     var val = $("#id_%(chainfield)s").val();
                     fill_field(val, "%(value)s");
                 }
-
                 $("#id_%(chainfield)s").change(function(){
                     var start_value = $("#%(id)s").val();
                     var val = $(this).val();
@@ -190,7 +186,7 @@ class ChainedSelect(Select):
                 filtered.sort(cmp=locale.strcoll, key=lambda x: unicode_sorter(unicode(x)))
                 for choice in filtered:
                     final_choices.append((choice.pk, unicode(choice)))
-            except:
+            except Exception, e:
                 final_choices = [(value, value)] # changes
             if len(final_choices) > 1:
                 final_choices = [("", (empty_label))] + final_choices
