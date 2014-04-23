@@ -128,7 +128,6 @@ class ChainedSelect(Select):
                             $('#%(id)s option[value="'+ init_value +'"]').attr('selected', 'selected');
                         }
                         if(auto_choose && j.out.length == 1){
-                            alert('ssss');
                             $('#%(id)s option[value="'+ j.out[0].value +'"]').attr('selected', 'selected');
                         }
                         $("#%(id)s").trigger('change');
