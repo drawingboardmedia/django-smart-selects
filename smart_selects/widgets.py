@@ -55,6 +55,8 @@ class ChainedSelect(Select):
         <script type="text/javascript" src="/site_media/media/javascript/public/jquery-1.5.2.min.js"></script>
         <script type="text/javascript">
         //<![CDATA[
+        // this is for accessing the fill_field globally
+       
         (function($) {
             function fireEvent(element,event){
                 if (document.createEventObject){
@@ -68,7 +70,7 @@ class ChainedSelect(Select):
                 evt.initEvent(event, true, true ); // event type,bubbling,cancelable
                 return !element.dispatchEvent(evt);
                 }
-            }
+            };
 
             function dismissRelatedLookupPopup(win, chosenId) {
                 var name = windowname_to_id(win.name);
@@ -80,29 +82,28 @@ class ChainedSelect(Select):
                 }
                 fireEvent(elem, 'change');
                 win.close();
-            }
-
-            $(document).ready(function(){
-                function fill_field(val, init_value){
-                    if (!val || val==''){
-                        options = '<option value="">%(empty_label)s<'+'/option>';
-                        $("#%(id)s").html(options);
-                        $('#%(id)s option:first').attr('selected', 'selected');
-                        $("#%(id)s").trigger('change');                                                
-                        return;
-                    }
-                    $.ajaxSetup({async:false});
-                    $.getJSON("%(url)s/"+val+"/", function(j){
-                        if (j.out == '')
+            };
+	    
+            var fill_field = function(val, init_value){
+	      	    if(!val || val==''){
+                    options = '<option value="">%(empty_label)s<'+'/option>';
+                    $("#%(id)s").html(options);
+                    $('#%(id)s option:first').attr('selected', 'selected');
+                    $("#%(id)s").trigger('change');                                                
+                    return;
+                }
+                $.ajaxSetup({async:false});
+                $.getJSON("%(url)s/"+val+"/", function(j){
+                    var selected_state_value = '%(value)s';
+                    if (j.out == ''){
                         // convert select field into textfield if no state is assigned for selected country
                         // User can fill Custom value into state field
-                        {
-                            $("#%(id)s").replaceWith('<input id="%(id)s" type="text" name="%(name)s" value="" />');
-                            document.getElementById("%(id)s").value = selected_state_value;
-                            $('label[for="%(id)s"]').html(j.political_divisions);
-                            selected_state_value = '';
-                        } 
-                        else {
+                        $("#%(id)s").replaceWith('<input id="%(id)s" type="text" name="%(name)s" value="" />');
+                        document.getElementById("%(id)s").value = selected_state_value;
+                        $('label[for="%(id)s"]').html(j.political_divisions);
+                        selected_state_value = '';
+                    }
+                    else {
                         var select_state = document.createElement("select");
                         select_state = $(select_state).attr('id', '%(id)s');
                         select_state = $(select_state).attr('name', '%(name)s');
@@ -115,7 +116,6 @@ class ChainedSelect(Select):
                             if (j.out[i] == selected_state_value) {
                                 options[i].selected = true;
                             }
-
                         }
                         selected_state_value = '';
                         var width = $("#%(id)s").outerWidth();
@@ -130,13 +130,11 @@ class ChainedSelect(Select):
                         if(auto_choose && j.out.length == 1){
                             $('#%(id)s option[value="'+ j.out[0].value +'"]').attr('selected', 'selected');
                         }
-                        
                         $("#%(id)s").trigger('change');
-                 
-                        }
-                    })
-                }
-                var selected_state_value = '%(value)s';
+                    }
+                });
+            };
+            $(document).ready(function(){
                 if(!$("#id_%(chainfield)s").hasClass("chained")){
                     var val = $("#id_%(chainfield)s").val();
                     fill_field(val, "%(value)s");
@@ -145,8 +143,9 @@ class ChainedSelect(Select):
                     var start_value = $("#%(id)s").val();
                     var val = $(this).val();
                     fill_field(val, start_value);
-                })
-            })
+                });
+              
+            });
             if (typeof(dismissAddAnotherPopup) !== 'undefined') {
                 var oldDismissAddAnotherPopup = dismissAddAnotherPopup;
                 dismissAddAnotherPopup = function(win, newId, newRepr) {
@@ -156,9 +155,13 @@ class ChainedSelect(Select):
                     }
                 }
             }
+            // making function which is returning state as global so that we can call this function when we need to fill the state filled on 
+            // any event in the checkout stages
+            window.fill_field = fill_field
         })(jQuery || django.jQuery);
         //]]>
         </script>
+
 
         """
         js = js % {"chainfield": chain_field,
